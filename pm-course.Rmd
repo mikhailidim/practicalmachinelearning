@@ -1,0 +1,46 @@
+---
+title: "Human Actibity Recognition  model"
+subtitle: "Practical Machine Learning, course project"
+author: "Michael Mikhailidi"
+date: "April 25, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+# Summary
+
+This paper describes implementation  of the machine learning algorithms and methods to  predict  human activity, using measurements from the wearable devices such as smartphones, smartwatches, ativity trackers and so on. 
+The stududy has been done with HAR dataset, collected by the group of the researchers (please check the project page here [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har).
+Goal of this work to build mathmatical model, which could identify human activity using data from the wearable devices. 
+
+# Data Preparation 
+Fo train and test prediction models we will use two data sets, generously provided by the HAR project contributors. 
+Training dataset could be found at [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv).
+Testing data are located [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv).
+
+```{r}
+set.seed(70720791)
+training<- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",header = TRUE)
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",header =TRUE)
+```
+We will use _training_ data for preparation and mode training, while  _testing_  data set will be used only for the prediction verification.
+
+Structure of the training data are provided below,
+```{r}
+ dim(training); dim(testing)
+summary(training)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
