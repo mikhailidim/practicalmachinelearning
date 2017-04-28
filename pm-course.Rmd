@@ -22,17 +22,36 @@ Fo train and test prediction models we will use two data sets, generously provid
 Training dataset could be found at [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv).
 Testing data are located [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv).
 
-```{r}
-set.seed(70720791)
-training<- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",header = TRUE)
-testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",header =TRUE)
+```{r }
+# Cached file names
+trnFile="./dataCache/pml-training.csv";
+tstFile="./dataCache/pml-testing.csv";
+# check if files are not available
+if (!file.exists(trnFile)) 
+   download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",trnFile,method="auto");
+if (!file.exists(tstFile)) 
+     download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",tstFile,method="auto");
+```
+Let's take a look into the source file. 
+
+"19621","adelmo",1322832937,964299,"02/12/2011 13:35","no",864,143,-35.9,131,18,"","","","","","",NA,NA,"",NA,NA,"",NA,NA,"",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.37,.....,"E"
+"19622","adelmo",1322832937,972293,"02/12/2011 13:35","yes",864,143,-36,132,18,"-1.175902","-1.063259","#DIV/0!","0.196860",......,"E"
+
+As you may see, there are plenty non-numeric values, like *NA* or *#DIV/0!*, those values may turn varable fro mthe inear to the factor, so we will instruct read.csv to handle them properly.
+
+```{r getData}
+# Load testing and training data sets.
+training<- read.csv(trnFile,header = TRUE, na.strings = c("NA","NaN","#DIV/0!"));
+testing <- read.csv(trnFile,header =TRUE, na.strings = c("NA","NaN","#DIV/0!"));
 ```
 We will use _training_ data for preparation and mode training, while  _testing_  data set will be used only for the prediction verification.
 
 Structure of the training data are provided below,
 ```{r}
- dim(training); dim(testing)
-summary(training)
+# Ensure reproducable results.
+set.seed(70720791)
+dim(training);
+str(training,list.len=10)
 ```
 
 ## Including Plots
