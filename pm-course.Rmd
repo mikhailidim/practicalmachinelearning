@@ -9,6 +9,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(cache = TRUE)
+library(caret)
+library(knitr)
+
 ```
 
 # Summary
@@ -17,7 +20,7 @@ This paper describes implementation  of the machine learning algorithms and meth
 The stududy has been done with HAR dataset, collected by the group of the researchers (please check the project page here [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har).
 Goal of this work to build mathmatical model, which could identify human activity using data from the wearable devices. 
 
-# Data Preparation 
+# Source Data
 Fo train and test prediction models we will use two data sets, generously provided by the HAR project contributors. 
 Training dataset could be found at [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv).
 Testing data are located [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv).
@@ -44,16 +47,34 @@ As you may see, there are plenty non-numeric values, like *NA* or *#DIV/0!*, tho
 training<- read.csv(trnFile,header = TRUE, na.strings = c("NA","NaN","#DIV/0!"));
 testing <- read.csv(trnFile,header =TRUE, na.strings = c("NA","NaN","#DIV/0!"));
 ```
-We will use _training_ data for preparation and mode training, while  _testing_  data set will be used only for the prediction verification.
+# Preprocess  data
 
-Structure of the training data are provided below,
-```{r}
+We will use _training_ data for preparation and mode training, while  _testing_  data set will be used only for the model verification. Let's take a look to the dataset and  structure of the training data. 
+```{r dataObservation}
 # Ensure reproducable results.
 set.seed(70720791)
 dim(training);
 str(training,list.len=10)
 ```
 
+We have 159 variable, and after closer look not all of them are good enough for the model. For example variable  *X* is nothing like a row number and would give us unwanted noise for the prediction. As soon as I'm going to  predict activity class using accelerometers data, I'd razer exclude all the date/time variables, as sson as they will be tightly correlated to the measurements. We lay down most of the night, didn't we? The same  true for the usernames. There are strong and unwanted corealtion because  users may have have different devices with the different variable. 
+
+```{r NaRate}
+ x<-as.data.frame(sapply(levels(training$classe),function(X){table(is.na(training[training$classe == X,]))}))
+kable(x) 
+```
+Table above demonstrates, that most of the measurements has no values. Because most of the prediction algorithms are not tollerant to the missing values, I prepare the training set  as follow. 
+1. Drop zero or constant variables   
+```{r NZV}
+ztr<-nearZeroVar(tr,saveMetrics = TRUE)
+ztr[ztr$zeroVar+ztr$nzv>0,]
+tr <-tr[,-nearZeroVar(tr)]
+``` 
+2. Preprocess data to impute missing values and perform principal component analysis.
+```{r PCA}
+ppr<-preProcess(tr[,-160],method=c("bagImpute","center","pca"))
+trp<-predict(ppr,tr)
+```
 ## Including Plots
 
 You can also embed plots, for example:
