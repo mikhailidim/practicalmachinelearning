@@ -32,7 +32,7 @@ Testing data are located [https://d396qusza40orc.cloudfront.net/predmachlearn/pm
 # Cached file names
 trnFile="./dataCache/pml-training.csv";
 tstFile="./dataCache/pml-testing.csv";
-# check if files are not available
+# check if files are  available
 if (!file.exists(trnFile)) 
    download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",trnFile,method="auto");
 if (!file.exists(tstFile)) 
@@ -86,17 +86,45 @@ dim(trp)
 ```
 
 #Build prediction models
-...
+It's time to build predition models. Because model should classify human activity, I have selected two classification models: 
+* Random Forest (parallel version)
+* Gradient Boosted Models
+
+Training models even with the  prepared data set is time quite time consuming, so code below trains modelv only if there is noo file cache available. othervise it reads cached bidary data in .rds format. 
+
 ```{r randomForest}
-rfParam<-expand.grid(mtry=round(sqrt(ncol(trp))))
- fit1<-train(classe ~ .,trp,method="parRF",tuneGrid=rfParam)
+# Cached model files
+rfFile="./dataCache/rfFit.rds";
+gbFile="./dataCache/gbmFit.rds";
+# Preparing RandomForestModel 
+if (file.exists(rfFile)) {
+   rfFit<-readRDS(rfFile);
+} else {
+# Fitting parallel Random Forset model
+ rfParam<-expand.grid(mtry=round(sqrt(ncol(trp))))
+ rfFit<-train(classe ~ .,trp,method="parRF",tuneGrid=rfParam) 
+ saveRDS(rfFit,rfFile)
+}
+  
+if (file.exists(gbFile)) {
+  gbmFit<-readRDS(gbFile);
+} else {
+# compute  GBM model
+  gbmFit<-train(classe ~ ., trp,method="gbm", trace=FALSE);
+}
+```
+
+Nowe we have two trained models. let's check models accuracy and check if  combined model would improve prediction.
+
+```{r rfErrorRates,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
+ plot(rfFit$finalModel,main="Random Forest model. Error rate")
 ```
 
 ## Including Plots
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
+```{r pressure, echo=FALSE}saveRD
 plot(pressure)
 ```
 
