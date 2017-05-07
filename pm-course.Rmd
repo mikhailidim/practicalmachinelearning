@@ -60,8 +60,10 @@ str(training,list.len=10)
 We have 159 variable, and after closer look not all of them are good enough for the model. For example variable  *X* is nothing like a row number and would give us unwanted noise for the prediction. As soon as I'm going to  predict activity class using accelerometers data, I'd razer exclude all the date/time variables, as sson as they will be tightly correlated to the measurements. We lay down most of the night, didn't we? The same  true for the usernames. There are strong and unwanted corealtion because  users may have have different devices with the different variable. 
 
 ```{r NaRate}
- x<-as.data.frame(sapply(levels(training$classe),function(X){table(is.na(training[training$classe == X,]))}))
-kable(x) 
+ #Remove row numbers and misleading variables
+ tr<-subset(training,select=-c(1:7))
+ kable(as.data.frame(sapply(levels(training$classe),function(X){table(is.na(training[training$classe == X,]))})))
+
 ```
 Table above demonstrates, that most of the measurements has no values. Because most of the prediction algorithms are not tollerant to the missing values, I prepare the training set  as follow. 
 1. Drop zero or constant variables   
@@ -73,8 +75,11 @@ tr <-tr[,-nearZeroVar(tr)]
 2. Preprocess data to impute missing values and perform principal component analysis.
 ```{r PCA}
 ppr<-preProcess(tr[,-160],method=c("bagImpute","center","pca"))
-trp<-predict(ppr,tr)
+#Preprocess results
+ppr
 ```
+
+
 ## Including Plots
 
 You can also embed plots, for example:
