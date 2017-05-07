@@ -9,8 +9,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(cache = TRUE)
-library(caret)
-library(knitr)
+
+require(caret);require(knitr)
+require(ggplot2);require(ipred)
+require(randomForest);require(margin)
+require(e1071);require(foreach)
 
 ```
 
@@ -69,7 +72,7 @@ Table above demonstrates, that most of the measurements has no values. Because m
 1. Drop zero or constant variables   
 ```{r NZV}
 ztr<-nearZeroVar(tr,saveMetrics = TRUE)
-ztr[ztr$zeroVar+ztr$nzv>0,]
+head(ztr[ztr$zeroVar+ztr$nzv>0,])
 tr <-tr[,-nearZeroVar(tr)]
 ``` 
 2. Preprocess data to impute missing values and perform principal component analysis.
@@ -77,8 +80,17 @@ tr <-tr[,-nearZeroVar(tr)]
 ppr<-preProcess(tr[,-160],method=c("bagImpute","center","pca"))
 #Preprocess results
 ppr
+## Prepre data for prediction
+trp<-predict(ppr,tr)
+dim(trp)
 ```
 
+#Build prediction models
+...
+```{r randomForest}
+rfParam<-expand.grid(mtry=round(sqrt(ncol(trp))))
+ fit1<-train(classe ~ .,trp,method="parRF",tuneGrid=rfParam)
+```
 
 ## Including Plots
 
