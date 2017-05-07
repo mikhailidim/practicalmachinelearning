@@ -62,6 +62,7 @@ We have target classifier and 159 variables. After a closer look, you may find t
 ```{r NaRate}
  #Remove row numbers and misleading variables
  tr<-subset(training,select=-c(1:7))
+ tt<-subset(testing,select=-c(1:7))
  kable(as.data.frame(sapply(levels(training$classe),function(X){table(is.na(training[training$classe == X,]))})))
 ```
 
@@ -71,16 +72,21 @@ The table above is a rough ballpark to demonstrate, that good half of the data h
 ```{r NZV}
 ztr<-nearZeroVar(tr,saveMetrics = TRUE)
 head(ztr[ztr$zeroVar+ztr$nzv>0,])
-tr <-tr[,-nearZeroVar(tr)]
+zt<-nearZeroVar(tr)
+tr <-tr[,-zt]
+tt <-tt[,-zt]
 ``` 
 
 2. Preprocess data to impute missing values and perform principal component analysis.
 ```{r PCA}
 ppr<-preProcess(tr[,-160],method=c("bagImpute","center","pca"))
+tpr<-preProcess(tt[,-160],method=c("bagImpute","center","pca"))
 #Preprocess results
 ppr
 ## Prepre data for prediction
 trp<-predict(ppr,tr)
+## Prepare data for testing
+tsp<-predict(ppr,tt)
 dim(trp)
 ```
 
@@ -126,10 +132,21 @@ You may see the model error rate dependency on the plot below:
 
 ## Gradient Boosted Model
 Accuracy for the GBM model is sligthly worse than for the random forests:
-```{r rfAcc}
+```{r gbAcc}
    gbmFit
 ```
 You may see the model accuracy over the iteartions and tgree depths   on the diagram below:
 ```{r gbmModel,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
  plot(gbmFit)
 ```
+
+Let's check combined model accuracy for the training data set:
+```{r combAcc}
+sum(predict(rfFit) == predict(gbmFit))/nrow(trp)
+```
+It's better than GBM model but worse than random forset. However 97% of accuracy may be a slightly overfitted. Let's run the models on the testing data set and see results.
+
+#Validate models
+To estimate model accuracy, I use testing datased, prepared the same way as the training one.
+
+
