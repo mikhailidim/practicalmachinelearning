@@ -194,7 +194,7 @@ sum(rfTest == gbTest)/length(rfTest)
 Results above shows that both models show about the same accuracy for the test data, while the random forest algorithm is slightly better than GBM. The accuracy of agreed values is worse than it was for the training data and felt below GBM prediction.
 Further model improvement, may require more detailed subject matter study and review predictors from the source datasets. 
 
-#REferences
+#References
 1. Jeff Leek, Ph.D.  Coursera, Practical Machine Learning, 2017.
 URL:[https://www.coursera.org/learn/practical-machine-learning](https://www.coursera.org/learn/practical-machine-learning)
 2. Lenwood (nickname). Parallel Random Forset tuning, 2014,
