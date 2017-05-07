@@ -7,4 +7,4 @@ This repositroy contains course work results. Repository includes:
 * [figures](figures) - Folder with the pregenerated diagrams for the Random Forest and GBM models.
 * [dataCache](dataCahce) - Folder contains binary imges for trained models and predictor preparation objects. Files in the folder are not required to reprocduce stady, but may drastically improve generation performace. 
 
-To view result, just click [here](pm-course.html) 
+To view result, just click [here](http://htmlpreview.github.io/?https://github.com/mikhailidim/practicalmachinelearning/blob/gh-pages/pm-course.html) 
