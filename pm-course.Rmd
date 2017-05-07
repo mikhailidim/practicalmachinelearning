@@ -1,9 +1,9 @@
 ---
-title: "Human Actibity Recognition  model"
-subtitle: "Practical Machine Learning, course project"
+title: "Human Activity Recognition  Model"
 author: "Michael Mikhailidi"
 date: "April 25, 2017"
 output: html_document
+subtitle: Practical Machine Learning, course project
 ---
 
 ```{r setup, include=FALSE}
@@ -12,16 +12,16 @@ knitr::opts_chunk$set(cache = TRUE)
 
 require(caret);require(knitr)
 require(ggplot2);require(ipred)
-require(randomForest);require(margin)
-require(e1071);require(foreach)
+require(randomForest);require(e1071);
+require(foreach)
 
 ```
 
 # Summary
 
-This paper describes implementation  of the machine learning algorithms and methods to  predict  human activity, using measurements from the wearable devices such as smartphones, smartwatches, ativity trackers and so on. 
-The stududy has been done with HAR dataset, collected by the group of the researchers (please check the project page here [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har).
-Goal of this work to build mathmatical model, which could identify human activity using data from the wearable devices. 
+This paper describes the application of the machine learning algorithms and methods to predict human activity, using measurements from the wearable devices such as smartphones, smartwatches, activity trackers and so on. 
+The study has been done with HAR dataset, collected by the group of the researchers (please check the project page here [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har).
+The main goal of this work, gain practical knowledge in the machine learning area and build a model which could identify human activity using data from the wearable devices. 
 
 # Source Data
 Fo train and test prediction models we will use two data sets, generously provided by the HAR project contributors. 
@@ -43,38 +43,37 @@ Let's take a look into the source file.
 "19621","adelmo",1322832937,964299,"02/12/2011 13:35","no",864,143,-35.9,131,18,"","","","","","",NA,NA,"",NA,NA,"",NA,NA,"",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.37,.....,"E"
 "19622","adelmo",1322832937,972293,"02/12/2011 13:35","yes",864,143,-36,132,18,"-1.175902","-1.063259","#DIV/0!","0.196860",......,"E"
 
-As you may see, there are plenty non-numeric values, like *NA* or *#DIV/0!*, those values may turn varable fro mthe inear to the factor, so we will instruct read.csv to handle them properly.
-
+As you may see, there are plenty non-numeric values, like *NA* or *#DIV/0!*, those values may turn variable from the linear predictor to the classification. Function read.csv allows you specify how to properly handle missing values.
 ```{r getData}
 # Load testing and training data sets.
 training<- read.csv(trnFile,header = TRUE, na.strings = c("NA","NaN","#DIV/0!"));
 testing <- read.csv(trnFile,header =TRUE, na.strings = c("NA","NaN","#DIV/0!"));
 ```
 # Preprocess  data
-
-We will use _training_ data for preparation and mode training, while  _testing_  data set will be used only for the model verification. Let's take a look to the dataset and  structure of the training data. 
+We will use _training_ data for preparation and mode training, while  _testing_  data set will be used only for the model verification. Let's take a look to the dataset and structure of the training data. 
 ```{r dataObservation}
-# Ensure reproducable results.
+# Ensure reproducible results.
 set.seed(70720791)
 dim(training);
 str(training,list.len=10)
 ```
-
-We have 159 variable, and after closer look not all of them are good enough for the model. For example variable  *X* is nothing like a row number and would give us unwanted noise for the prediction. As soon as I'm going to  predict activity class using accelerometers data, I'd razer exclude all the date/time variables, as sson as they will be tightly correlated to the measurements. We lay down most of the night, didn't we? The same  true for the usernames. There are strong and unwanted corealtion because  users may have have different devices with the different variable. 
+We have target classifier and 159 variables. After a closer look, you may find that not all of them are good enough for the model. For example, variable  *X* is nothing like a row number and would give us unwanted prediction noise. We are going to predict activity using device measurements, so I have excluded all the date/time variables, as soon as they will be tightly correlated to the measurements. We lay down most of the night, didn't we? The same is true for the user names. Potentially, there could be strong and unwanted correlations,  because users may have different devices with the different measurements. 
 
 ```{r NaRate}
  #Remove row numbers and misleading variables
  tr<-subset(training,select=-c(1:7))
  kable(as.data.frame(sapply(levels(training$classe),function(X){table(is.na(training[training$classe == X,]))})))
-
 ```
-Table above demonstrates, that most of the measurements has no values. Because most of the prediction algorithms are not tollerant to the missing values, I prepare the training set  as follow. 
+
+The table above is a rough ballpark to demonstrate, that good half of the data has no data. Because most of the prediction algorithms are not tollerant to the missing values, I have prepared the training set  as below:
+
 1. Drop zero or constant variables   
 ```{r NZV}
 ztr<-nearZeroVar(tr,saveMetrics = TRUE)
 head(ztr[ztr$zeroVar+ztr$nzv>0,])
 tr <-tr[,-nearZeroVar(tr)]
 ``` 
+
 2. Preprocess data to impute missing values and perform principal component analysis.
 ```{r PCA}
 ppr<-preProcess(tr[,-160],method=c("bagImpute","center","pca"))
@@ -86,11 +85,11 @@ dim(trp)
 ```
 
 #Build prediction models
-It's time to build predition models. Because model should classify human activity, I have selected two classification models: 
-* Random Forest (parallel version)
+Now we are ready to build prediction models. Our target variable is a clssifier, so I will use only classification models: 
+* Random Forest (it's parallel implementation)
 * Gradient Boosted Models
 
-Training models even with the  prepared data set is time quite time consuming, so code below trains modelv only if there is noo file cache available. othervise it reads cached bidary data in .rds format. 
+Training models even with the prepared data set are quite time-consuming and the code below trains models only in case if there are no file cache available, otherwise it reads cached models from the RDS format. 
 
 ```{r randomForest}
 # Cached model files
@@ -114,18 +113,23 @@ if (file.exists(gbFile)) {
 }
 ```
 
-Nowe we have two trained models. let's check models accuracy and check if  combined model would improve prediction.
+## Random Forest accuracy
+The random forest model fits training data set with the accuracy as below:
+```{r rfAcc}
+   rfFit
+```
 
+You may see the model error rate dependency on the plot below:
 ```{r rfErrorRates,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
  plot(rfFit$finalModel,main="Random Forest model. Error rate")
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}saveRD
-plot(pressure)
+## Gradient Boosted Model
+Accuracy for the GBM model is sligthly worse than for the random forests:
+```{r rfAcc}
+   gbmFit
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+You may see the model accuracy over the iteartions and tgree depths   on the diagram below:
+```{r gbmModel,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
+ plot(gbmFit)
+```
