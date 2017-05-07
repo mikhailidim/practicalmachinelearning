@@ -127,7 +127,7 @@ $(document).ready(function () {
 
 <div id="summary" class="section level1">
 <h1>Summary</h1>
-<p>This paper describes the application of the machine learning algorithms and methods to predict human activity, using measurements from the wearable devices such as smartphones, smartwatches, activity trackers and so on. The study has been done with HAR dataset, collected by the group of the researchers (please check the project page here <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a>. The main goal of this work, gain practical knowledge in the machine learning area and build a model which could identify human activity using data from the wearable devices. The final prediction model is build on the Parallel Random Forest algorith and shows accuracy rate as <strong>0.8957</strong> on preprocessed test data set.</p>
+<p>This paper describes the application of the machine learning algorithms and methods to predict human activity, using measurements from the wearable devices such as smartphones, smartwatches, activity trackers and so on. The study has been done with HAR dataset, collected by the group of the researchers (please check the project page here <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a>. The main goal of this work, gain practical knowledge in the machine learning area and build a model which could identify human activity using data from the wearable devices. The final prediction model is built on the Parallel Random Forest algorithm and shows accuracy rate as <strong>0.896</strong> on pre-processed test data set.</p>
 </div>
 <div id="source-data" class="section level1">
 <h1>Source Data</h1>
@@ -143,9 +143,17 @@ if (!file.exists(tstFile))
 <p>Let’s take a look into the source file.</p>
 <p>“19621”,“adelmo”,1322832937,964299,“02/12/2011 13:35”,“no”,864,143,-35.9,131,18,“”,“”,“”,“”,“”,“”,NA,NA,“”,NA,NA,“”,NA,NA,“”,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.37,…..,“E” “19622”,“adelmo”,1322832937,972293,“02/12/2011 13:35”,“yes”,864,143,-36,132,18,“-1.175902”,“-1.063259”,“#DIV/0!”,“0.196860”,……,“E”</p>
 <p>As you may see, there are plenty non-numeric values, like <em>NA</em> or <em>#DIV/0!</em>, those values may turn variable from the linear predictor to the classification. Function read.csv allows you specify how to properly handle missing values.</p>
+<p>Validation is the quiz data set to validate final prediction.</p>
 <pre class="r"><code># Load testing and training data sets.
 training&lt;- read.csv(trnFile,header = TRUE, na.strings = c(&quot;NA&quot;,&quot;NaN&quot;,&quot;#DIV/0!&quot;));
-testing &lt;- read.csv(trnFile,header =TRUE, na.strings = c(&quot;NA&quot;,&quot;NaN&quot;,&quot;#DIV/0!&quot;));</code></pre>
+validating &lt;- read.csv(tstFile,header =TRUE, na.strings = c(&quot;NA&quot;,&quot;NaN&quot;,&quot;#DIV/0!&quot;));</code></pre>
+</div>
+<div id="split-the-data" class="section level1">
+<h1>Split the data</h1>
+<p>I split data to teh training and testing parts using code below:</p>
+<pre class="r"><code>inTrain&lt;-createDataPartition(training$classe, times=1, p = .75,list = FALSE)
+testing&lt;-training[-inTrain,]
+training&lt;-training[inTrain,]</code></pre>
 </div>
 <div id="preprocess-data" class="section level1">
 <h1>Preprocess data</h1>
@@ -202,7 +210,7 @@ dim(training);</code></pre>
 </tr>
 </tbody>
 </table>
-<p>The table above is a rough ballpark to demonstrate, that good half of the data has no data. Because most of the prediction algorithms are not tollerant to the missing values, I have prepared the training set as below:</p>
+<p>The table above is a rough ballpark to demonstrate, that good half of the data has no data. Because most of the prediction algorithms are intolerant to the missing values, I have prepared the training set as below:</p>
 <ol style="list-style-type: decimal">
 <li>Drop zero or constant variables</li>
 </ol>
@@ -215,7 +223,7 @@ head(ztr[ztr$zeroVar+ztr$nzv&gt;0,])</code></pre>
 ## avg_roll_arm              77    1.68178575   FALSE TRUE
 ## stddev_roll_arm           77    1.68178575   FALSE TRUE
 ## var_roll_arm              77    1.68178575   FALSE TRUE</code></pre>
-<pre class="r"><code># If cached object are exists load it
+<pre class="r"><code># If cached object exists load it
 if (file.exists(&quot;dataCache/zt.rds&quot;)) {
   zt&lt;-readRDS(&quot;dataCache/zt.rds&quot;)
 } else {
@@ -352,7 +360,7 @@ if (file.exists(gbFile)) {
 <pre class="r"><code>sum(predict(rfFit) == predict(gbmFit))/nrow(trp)</code></pre>
 <pre><code>## Loading required package: plyr</code></pre>
 <pre><code>## [1] 0.8593416</code></pre>
-<p>It’s better than GBM model but worse than random forset. However, 97% of accuracy may be a slightly overfitted. Let’s run the models on the testing data set and see results.</p>
+<p>It’s better than GBM model but worse than random forest. However, 97% of accuracy may be a slightly overfitted. Let’s run the models on the testing data set and see results.</p>
 </div>
 </div>
 <div id="validate-models" class="section level1">
@@ -430,6 +438,38 @@ if (file.exists(gbFile)) {
 <pre class="r"><code>sum(rfTest == gbTest)/length(rfTest)</code></pre>
 <pre><code>## [1] 0.8289675</code></pre>
 </div>
+<div id="the-final-quiz-solution" class="section level1">
+<h1>The final Quiz solution</h1>
+<p>I’m going to apply Random Forest model to the 20 test cases and use my chances. As in the training and test cases validation data should be preproceessed with the on slight difference. Validation data set has no classe outcome.</p>
+<pre class="r"><code>   sum(names(testing) == names(validating))</code></pre>
+<pre><code>## [1] 159</code></pre>
+<p>So I should add the missing column to be consistend with the original data. Let’s perform preparation</p>
+<pre class="r"><code>  tv&lt;-subset(validating,select=-c(1:7))
+  tv&lt;-tv[,-zt]
+  #Add factor to the last column
+  tv$classe&lt;-tt$classe[1:20]
+  # shrink model columns
+  tvp&lt;-predict(ppr,tv)</code></pre>
+<p>Now, let’s make quiz answers prediction:</p>
+<pre class="r"><code>  # Predict my quiz score
+  quizAnswers1&lt;-predict(rfFit,tvp)
+
+  quizAnswers2&lt;-predict(gbmFit,tvp)
+  print(&quot;Random forest prediction:&quot;)</code></pre>
+<pre><code>## [1] &quot;Random forest prediction:&quot;</code></pre>
+<pre class="r"><code>  quizAnswers1</code></pre>
+<pre><code>##  [1] B A A A A E D B A A A C B A E E A B B B
+## Levels: A B C D E</code></pre>
+<pre class="r"><code>  print(&quot;Random forest prediction:&quot;)</code></pre>
+<pre><code>## [1] &quot;Random forest prediction:&quot;</code></pre>
+<pre class="r"><code>  quizAnswers2</code></pre>
+<pre><code>##  [1] A A A A A E D B A A B C B A D A A B B B
+## Levels: A B C D E</code></pre>
+<pre class="r"><code>  print(&quot;Combined prediction accuracy :&quot;)</code></pre>
+<pre><code>## [1] &quot;Combined prediction accuracy :&quot;</code></pre>
+<pre class="r"><code>  sum(quizAnswers1 == quizAnswers2) /length(quizAnswers1)</code></pre>
+<pre><code>## [1] 0.8</code></pre>
+</div>
 <div id="conclusion" class="section level1">
 <h1>Conclusion</h1>
 <p>Results above shows that both models show about the same accuracy for the test data, while the random forest algorithm is slightly better than GBM. The accuracy of agreed values is worse than it was for the training data and felt below GBM prediction. Further model improvement, may require more detailed subject matter study and review predictors from the source datasets.</p>
@@ -437,7 +477,7 @@ if (file.exists(gbFile)) {
 <div id="references" class="section level1">
 <h1>References</h1>
 <ol style="list-style-type: decimal">
-<li>Jeff Leek, PhD. Coursera, Practical Machine Learning, 2017. URL:<a href="https://www.coursera.org/learn/practical-machine-learning" class="uri">https://www.coursera.org/learn/practical-machine-learning</a></li>
+<li>Jeff Leek, Ph.D. Coursera, Practical Machine Learning, 2017. URL:<a href="https://www.coursera.org/learn/practical-machine-learning" class="uri">https://www.coursera.org/learn/practical-machine-learning</a></li>
 <li>Lenwood (nickname). Parallel Random Forset tuning, 2014, URL: <a href="http://stackoverflow.com/questions/23607454/how-to-use-parrf-method-so-random-forest-will-run-faster" class="uri">http://stackoverflow.com/questions/23607454/how-to-use-parrf-method-so-random-forest-will-run-faster</a><br />
 </li>
 <li>Max Kuhn, R Documentation. preProcess predictors. URL <a href="https://www.rdocumentation.org/packages/caret/versions/3.21/topics/preProcess" class="uri">https://www.rdocumentation.org/packages/caret/versions/3.21/topics/preProcess</a></li>

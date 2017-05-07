@@ -45,11 +45,21 @@ Let's take a look into the source file.
 "19622","adelmo",1322832937,972293,"02/12/2011 13:35","yes",864,143,-36,132,18,"-1.175902","-1.063259","#DIV/0!","0.196860",......,"E"
 
 As you may see, there are plenty non-numeric values, like *NA* or *#DIV/0!*, those values may turn variable from the linear predictor to the classification. Function read.csv allows you specify how to properly handle missing values.
+
+Validation is the quiz data set to validate final prediction.
 ```{r getData}
 # Load testing and training data sets.
 training<- read.csv(trnFile,header = TRUE, na.strings = c("NA","NaN","#DIV/0!"));
-testing <- read.csv(trnFile,header =TRUE, na.strings = c("NA","NaN","#DIV/0!"));
+validating <- read.csv(tstFile,header =TRUE, na.strings = c("NA","NaN","#DIV/0!"));
 ```
+# Split the data
+I split data to teh training and testing parts using code below:
+```{r datasplit}
+inTrain<-createDataPartition(training$classe, times=1, p = .75,list = FALSE)
+testing<-training[-inTrain,]
+training<-training[inTrain,]
+```
+
 # Preprocess  data
 We will use _training_ data for preparation and mode training, while  _testing_  data set will be used only for the model verification. Let's take a look to the dataset and structure of the training data. 
 ```{r dataObservation}
@@ -190,9 +200,42 @@ Let's doubl check accuracy rate for the results where both models are agree on t
 sum(rfTest == gbTest)/length(rfTest)
 ```
 
+
+#The final Quiz solution
+
+I'm going to apply Random Forest model to the 20 test cases and use my chances. As in the training and test cases validation data should be preproceessed with the on slight difference. Validation data set has no classe outcome.
+```{r checkColumns}
+   sum(names(testing) == names(validating))
+```
+So I should add the missing column to be consistend with the original data.  Let's perform preparation
+```{r prepreValidation}
+  tv<-subset(validating,select=-c(1:7))
+  tv<-tv[,-zt]
+  #Add factor to the last column
+  tv$classe<-tt$classe[1:20]
+  # shrink model columns
+  tvp<-predict(ppr,tv)
+```
+
+Now, let's make quiz answers  prediction:
+```{r final results}
+  # Predict my quiz score
+  quizAnswers1<-predict(rfFit,tvp)
+
+  quizAnswers2<-predict(gbmFit,tvp)
+  print("Random forest prediction:")
+  quizAnswers1
+  
+  print("Random forest prediction:")
+  quizAnswers2
+  print("Combined prediction accuracy :")
+  sum(quizAnswers1 == quizAnswers2) /length(quizAnswers1)
+
+```
+
 #Conclusion
-Results above shows that both models show about the same accuracy for the test data, while the random forest algorithm is slightly better than GBM. The accuracy of agreed values is worse than it was for the training data and felt below GBM prediction.
-Further model improvement, may require more detailed subject matter study and review predictors from the source datasets. 
+Results above shows that both models show about the same accuracy for the test data, while the random forest algorithm is slightly better than GBM. The accuracy of agreed values is worse than it was for the training data and felt below GBM prediction. Further model improvement, may require more detailed subject matter study and review predictors from the source datasets. 
+
 
 #References
 1. Jeff Leek, Ph.D.  Coursera, Practical Machine Learning, 2017.
