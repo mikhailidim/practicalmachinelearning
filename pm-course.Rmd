@@ -13,7 +13,7 @@ knitr::opts_chunk$set(cache = TRUE)
 require(caret);require(knitr)
 require(ggplot2);require(ipred)
 require(randomForest);require(e1071);
-require(foreach)
+require(gbm);require(survival);require(foreach)
 
 ```
 
@@ -22,6 +22,7 @@ require(foreach)
 This paper describes the application of the machine learning algorithms and methods to predict human activity, using measurements from the wearable devices such as smartphones, smartwatches, activity trackers and so on. 
 The study has been done with HAR dataset, collected by the group of the researchers (please check the project page here [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har).
 The main goal of this work, gain practical knowledge in the machine learning area and build a model which could identify human activity using data from the wearable devices. 
+The final prediction model is built on the Parallel Random Forest algorithm and shows accuracy rate as **0.896** on pre-processed test data set.    
 
 # Source Data
 Fo train and test prediction models we will use two data sets, generously provided by the HAR project contributors. 
@@ -66,21 +67,32 @@ We have target classifier and 159 variables. After a closer look, you may find t
  kable(as.data.frame(sapply(levels(training$classe),function(X){table(is.na(training[training$classe == X,]))})))
 ```
 
-The table above is a rough ballpark to demonstrate, that good half of the data has no data. Because most of the prediction algorithms are not tollerant to the missing values, I have prepared the training set  as below:
+The table above is a rough ballpark to demonstrate, that good half of the data has no data. Because most of the prediction algorithms are  intolerant to the missing values, I have prepared the training set  as below:
 
 1. Drop zero or constant variables   
 ```{r NZV}
 ztr<-nearZeroVar(tr,saveMetrics = TRUE)
 head(ztr[ztr$zeroVar+ztr$nzv>0,])
-zt<-nearZeroVar(tr)
+# If cached object exists load it
+if (file.exists("dataCache/zt.rds")) {
+  zt<-readRDS("dataCache/zt.rds")
+} else {
+  zt<-nearZeroVar(tr);
+  saveRDS(zt,file="dataCache/zt.rds")
+}
 tr <-tr[,-zt]
 tt <-tt[,-zt]
 ``` 
 
 2. Preprocess data to impute missing values and perform principal component analysis.
 ```{r PCA}
-ppr<-preProcess(tr[,-160],method=c("bagImpute","center","pca"))
-tpr<-preProcess(tt[,-160],method=c("bagImpute","center","pca"))
+# Check cached pre process object
+if (file.exists("dataCache/ppr.rds")) {
+  ppr<-readRDS("dataCache/ppr.rds")
+} else {
+  ppr<-preProcess(tr[,-160],method=c("bagImpute","center","pca"));
+  saveRDS(ppr,file="dataCache/ppr.rds");
+}
 #Preprocess results
 ppr
 ## Prepre data for prediction
@@ -91,7 +103,7 @@ dim(trp)
 ```
 
 #Build prediction models
-Now we are ready to build prediction models. Our target variable is a clssifier, so I will use only classification models: 
+Now we are ready to build prediction models. Our target variable is a classifier, so I will use only classification models: 
 * Random Forest (it's parallel implementation)
 * Gradient Boosted Models
 
@@ -126,27 +138,67 @@ The random forest model fits training data set with the accuracy as below:
 ```
 
 You may see the model error rate dependency on the plot below:
-```{r rfErrorRates,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
+#```{r rfErrorRates,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
+```{r rfErroRates}
+ png("figures/rfm-plot1.png",width = 800,height = 480) 
  plot(rfFit$finalModel,main="Random Forest model. Error rate")
+ dev.off()
 ```
 
+![](figures/rfm-plot1.png)
+
 ## Gradient Boosted Model
-Accuracy for the GBM model is sligthly worse than for the random forests:
+Accuracy for the GBM model is slightly worse than for the random forests:
 ```{r gbAcc}
    gbmFit
 ```
 You may see the model accuracy over the iteartions and tgree depths   on the diagram below:
-```{r gbmModel,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
+#```{r gbmModel,dpi=100,figure.width=10,figure.height=10,out.width='800px',out.height='800px'}
+```{r plotGBMModel}
+ png("figures/gbm-plot1.png",width = 800,height = 480) 
  plot(gbmFit)
+ dev.off()
 ```
+
+![](figures/gbm-plot1.png)
 
 Let's check combined model accuracy for the training data set:
 ```{r combAcc}
 sum(predict(rfFit) == predict(gbmFit))/nrow(trp)
 ```
-It's better than GBM model but worse than random forset. However 97% of accuracy may be a slightly overfitted. Let's run the models on the testing data set and see results.
+It's better than GBM model but worse than random forest. However, 97% of accuracy may be a slightly overfitted. Let's run the models on the testing data set and see results.
 
 #Validate models
-To estimate model accuracy, I use testing datased, prepared the same way as the training one.
+To estimate model accuracy, I use testing dataset, prepared the same way as the training one.
+```{r predict data}
+  rfTest<-predict(rfFit,newdata=tsp)
+  gbTest<-predict(gbmFit,newdata = tsp)
+```
 
+Prediction accuracy for the Random Forest model are:
+```{r COnfMatrixRF}
+   confusionMatrix(rfTest,tsp$classe)
+```
+Confusion matrix indicates, that accuracy ratio went down on test data and gets closer to the GBM model results.
+While GBM model shows about the same accuracy rate as for the training  data:
+```{r confMatrixGBM}
+   confusionMatrix(gbTest,tsp$classe)
+```
+Let's doubl check accuracy rate for the results where both models are agree on the outcome:
+
+```{r combAccTest}
+sum(rfTest == gbTest)/length(rfTest)
+```
+
+#Conclusion
+Results above shows that both models show about the same accuracy for the test data, while the random forest algorithm is slightly better than GBM. The accuracy of agreed values is worse than it was for the training data and felt below GBM prediction.
+Further model improvement, may require more detailed subject matter study and review predictors from the source datasets. 
+
+#REferences
+1. Jeff Leek, Ph.D.  Coursera, Practical Machine Learning, 2017.
+URL:[https://www.coursera.org/learn/practical-machine-learning](https://www.coursera.org/learn/practical-machine-learning)
+2. Lenwood (nickname). Parallel Random Forset tuning, 2014,
+URL: [http://stackoverflow.com/questions/23607454/how-to-use-parrf-method-so-random-forest-will-run-faster](http://stackoverflow.com/questions/23607454/how-to-use-parrf-method-so-random-forest-will-run-faster)  
+3. Max Kuhn, R Documentation. preProcess predictors. 
+URL [https://www.rdocumentation.org/packages/caret/versions/3.21/topics/preProcess](https://www.rdocumentation.org/packages/caret/versions/3.21/topics/preProcess)
 
